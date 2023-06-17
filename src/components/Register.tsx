@@ -1,142 +1,125 @@
-import React, { useState } from "react";
-import { Formik, Field, Form, ErrorMessage } from "formik";
-import * as Yup from "yup";
+import React, {useState, ChangeEvent, FormEvent} from 'react';
+import {useNavigate} from 'react-router-dom';
 
-import IUser from "../types/user.type";
-import { register } from "../services/auth.service";
+const RegisterPage: React.FC = () => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [registrationSuccess, setRegistrationSuccess] = useState(false);
+    const history = useNavigate();
 
-const Register: React.FC = () => {
-  const [successful, setSuccessful] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>("");
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
 
-  const initialValues: IUser = {
-    username: "",
-    email: "",
-    password: "",
-  };
+        try {
+            const response = await fetch(
+                'https://mock-api.arikmpt.com/api/user/register',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({name, email, password}),
+                }
+            );
 
-  const validationSchema = Yup.object().shape({
-    username: Yup.string()
-      .test(
-        "len",
-        "The username must be between 3 and 20 characters.",
-        (val: any) =>
-          val &&
-          val.toString().length >= 3 &&
-          val.toString().length <= 20
-      )
-      .required("This field is required!"),
-    email: Yup.string()
-      .email("This is not a valid email.")
-      .required("This field is required!"),
-    password: Yup.string()
-      .test(
-        "len",
-        "The password must be between 6 and 40 characters.",
-        (val: any) =>
-          val &&
-          val.toString().length >= 6 &&
-          val.toString().length <= 40
-      )
-      .required("This field is required!"),
-  });
+            if (response.ok) {
+                setRegistrationSuccess(true);
+                setName('');
+                setEmail('');
+                setPassword('');
+            } else {
+                console.log('Registration failed');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
 
-  const handleRegister = (formValue: IUser) => {
-    const { username, email, password } = formValue;
+    const handleLogin = () => {
+        history('/');
+    };
 
-  // Check for null or undefined values and provide default values
-    const validUsername = username ?? '';
-    const validEmail = email ?? '';
-    const validPassword = password ?? '';
+    const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setName(e.target.value);
+    };
 
-  register(validUsername, validEmail, validPassword).then(
-      (response) => {
-        setMessage(response.data.message);
-        setSuccessful(true);
-      },
-      (error) => {
-        const resMessage =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
+    const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setEmail(e.target.value);
+    };
 
-        setMessage(resMessage);
-        setSuccessful(false);
-      }
+    const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setPassword(e.target.value);
+    };
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black p-6 rounded-md backdrop">
+                    <div className=' overflow-hidden rounded-md shadow border mt-0 max-w-md p-6'>
+
+            <h3 className="text-3xl font-bold text-white mb-4">Register Here!</h3>
+            {registrationSuccess ? (
+                <p className="text-red-500">Your account has been created!</p>
+            ) : (
+                <form className="w-full max-w-sm" onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label htmlFor="name" className="text-white block mb-2">
+                            Name:
+                        </label>
+                        <input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={handleNameChange}
+                            className="border border-white px-3 py-2 rounded-md w-full"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="email" className="text-white block mb-2">
+                            Email:
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={handleEmailChange}
+                            className="border border-white px-3 py-2 rounded-md w-full"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="password" className="text-white block mb-2">
+                            Password:
+                        </label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={handlePasswordChange}
+                            className="border border-white px-3 py-2 rounded-md w-full"
+                        />
+                    </div>
+                    <div className="flex flex-row">
+                    <button
+                        type="submit"
+                        className="bg-white text-red px-6 py-2 mt-4 max-w-sm rounded-md hover:bg-blue-100 block mx-auto"
+                        >
+                        Submit
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleLogin}
+                        className="bg-red-500 text-white px-6 py-2 mt-4 max-w-sm rounded-md hover:bg-gray-300 hover:text-black block mx-auto"
+                    >
+                        Login
+                    </button>
+                    </div>
+                </form>
+            )}
+            
+
+            </div>
+
+        </div>
     );
-  };
-
-  return (
-    <div className="relative flex flex-col justify-center min-h-screen overflow-hidden">
-      <div className="w-full p-6 m-auto bg-gray-200 rounded-lg shadow-xl lg:max-w-xl">
-
-        <Formik
-          initialValues={initialValues}
-          validationSchema={validationSchema}
-          onSubmit={handleRegister}
-        >
-          <Form>
-            {!successful && (
-              <div>
-                <div className="mb-4">
-                  <label htmlFor="username" className="mt-5 block text-md font-semibold text-gray-800"> Username </label>
-                  <Field name="username" type="text" className="block w-full px-4 py-2 mt-2 text-purple-700 bg-gray-300 border rounded-md focus:border-purple-400 focus:ring-purple-300 focus:outline-none focus:ring focus:ring-opacity-40" />
-                  <ErrorMessage
-                    name="username"
-                    component="div"
-                    className="text-red-500"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label htmlFor="email" className="mt-5 block text-md font-semibold text-gray-800"> Email </label>
-                  <Field name="email" type="email" className="block w-full px-4 py-2 mt-2 text-purple-700 bg-gray-300 border rounded-md focus:border-purple-400 focus:ring-purple-300 focus:outline-none focus:ring focus:ring-opacity-40" />
-                  <ErrorMessage
-                    name="email"
-                    component="div"
-                    className="text-red-500"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label htmlFor="password" className="mt-5 block text-md font-semibold text-gray-800"> Password </label>
-                  <Field
-                    name="password"
-                    type="password"
-                    className="block w-full px-4 py-2 mt-2 text-purple-700 bg-gray-300 border rounded-md focus:border-purple-400 focus:ring-purple-300 focus:outline-none focus:ring focus:ring-opacity-40"
-                  />
-                  <ErrorMessage
-                    name="password"
-                    component="div"
-                    className="text-red-500"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <button type="submit" className="bg-white text-blue-500 px-6 py-2 rounded-md hover:bg-blue-100 block mx-auto">Sign Up</button>
-                </div>
-              </div>
-            )}
-
-            {message && (
-              <div className="mb-4">
-                <div
-                  className={
-                    successful ? "alert alert-success" : "alert alert-danger"
-                  }
-                  role="alert"
-                >
-                  {message}
-                </div>
-              </div>
-            )}
-          </Form>
-        </Formik>
-      </div>
-    </div>
-  );
 };
 
-export default Register;
+export default RegisterPage;

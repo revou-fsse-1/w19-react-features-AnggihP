@@ -1,111 +1,117 @@
-import React, { useState } from "react";
-import { NavigateFunction, useNavigate } from 'react-router-dom';
-import { Formik, Field, Form, ErrorMessage } from "formik";
-import * as Yup from "yup";
+import React, { useState, ChangeEvent, FormEvent, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../services/AuthContext';
 
-import { login } from "../services/auth.service";
+const LoginPage: React.FC = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loginSuccess, setLoginSuccess] = useState(false);
+    const [loginError] = useState('');
 
-type Props = {}
+    const history = useNavigate();
+    const { login } = useContext(AuthContext);
 
-const Login: React.FC<Props> = () => {
-  let navigate: NavigateFunction = useNavigate();
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>("");
+        try {
+            const response = await fetch(
+                'https://mock-api.arikmpt.com/api/user/login',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                }
+            );
 
-  const initialValues: {
-    username: string;
-    password: string;
-  } = {
-    username: "",
-    password: "",
-  };
+            if (response.ok) {
+                const data = await response.json(); 
+                const { token } = data.data;
+                console.log('Received token:', token); 
+                login(token);
+                setLoginSuccess(true);
+                setEmail('');
+                setPassword('');
 
-  const validationSchema = Yup.object().shape({
-    username: Yup.string().required("This field is required!"),
-    password: Yup.string().required("This field is required!"),
-  });
+                history('/dashboard');
+            } else {
+                console.log('Login failed');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
 
-  const handleLogin = (formValue: { username: string; password: string }) => {
-    const { username, password } = formValue;
 
-    setMessage("");
-    setLoading(true);
+    const handleRegister = () => {
+        history('/register');
+    };
 
-    login(username, password).then(
-      () => {
-        navigate("/profile");
-        window.location.reload();
-      },
-      (error) => {
-        const resMessage =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
+    const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setEmail(e.target.value);
+    };
 
-        setLoading(false);
-        setMessage(resMessage);
-      }
-    );
-  };
+    const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setPassword(e.target.value);
+    };
 
-  return (
-    <div className="relative flex flex-col justify-center min-h-screen overflow-hidden">
-      <div className="w-full p-6 m-auto bg-gray-200 rounded-lg shadow-xl lg:max-w-xl">
-        {/* <img
-          src="//ssl.gstatic.com/accounts/ui/avatar_2x.png"
-          alt="profile-img"
-          className=""
-        /> */}
-        <Formik
-          initialValues={initialValues}
-          validationSchema={validationSchema}
-          onSubmit={handleLogin}
-        >
-          <Form>
-            <div className="mt-6">
-              <label htmlFor="username"  className="block text-md font-semibold text-gray-800">Username</label>
-              <Field name="username" type="text" className="block w-full px-4 py-2 mt-2 text-purple-700 bg-gray-300 border rounded-md focus:border-purple-400 focus:ring-purple-300 focus:outline-none focus:ring focus:ring-opacity-40" />
-              <ErrorMessage
-                name="username"
-                component="div"
-                className="text-red-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="password"  className="mt-5 block text-md font-semibold text-gray-800">Password</label>
-              <Field name="password" type="password" className="block w-full px-4 py-2 mt-2 text-purple-700 bg-gray-300 border rounded-md focus:border-purple-400 focus:ring-purple-300 focus:outline-none focus:ring focus:ring-opacity-40s" />
-              <ErrorMessage
-                name="password"
-                component="div"
-                className="text-red-500"
-              />
-            </div>
-
-            <div className="mt-6">
-              <button type="submit" className="bg-black text-blue-500 px-6 py-2 rounded-md hover:bg-blue-100 block mx-auto" disabled={loading}>
-                {loading && (
-                  <span  className="block text-sm font-semibold text-gray-800"></span>
-                )}
-                <span>Login</span>
-              </button>
-            </div>
-
-            {message && (
-              <div className="mt-6">
-                <div className="text-red-500" role="alert">
-                  {message}
-                </div>
-              </div>
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black p-6 rounded-md backdrop">
+            <div className=' overflow-hidden rounded-md shadow border mt-0 max-w-md p-6'>
+            <h1 className="text-3xl font-bold text-white mb-4">Login Here!</h1>
+            {loginSuccess ? (
+                <p className="text-red-500">Login successful!</p>
+            ) : (
+                <form className="w-full max-w-sm" onSubmit={handleSubmit}>
+                    {loginError && (
+                        <p className="text-red-500 mb-4">{loginError}</p>
+                    )}
+                    <div className="mb-4">
+                        <label htmlFor="email" className="text-white block mb-2">
+                            Email:
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={handleEmailChange}
+                            className="border border-white px-3 py-2 rounded-md w-full"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="password" className="text-white block mb-2">
+                            Password:
+                        </label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={handlePasswordChange}
+                            className="border border-white px-3 py-2 rounded-md w-full"
+                        />
+                    </div>
+                    <div className="flex flex-row">
+                    <button
+                        type="submit"
+                        className="bg-white text-black px-6 py-2 mt-4 max-w-sm rounded-md hover:bg-blue-100 block mx-auto"
+                        >
+                        Submit
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleRegister}
+                        className="bg-red-500 text-white px-6 py-2 mt-4 max-w-sm rounded-md hover:bg-gray-300 hover:text-black block mx-auto"
+                    >
+                        Register
+                    </button>
+                    </div>
+                </form>
             )}
-          </Form>
-        </Formik>
-      </div>
-    </div>
-  );
+        </div>
+        </div>
+    );
 };
 
-export default Login;
+export default LoginPage;
